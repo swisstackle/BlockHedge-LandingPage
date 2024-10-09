@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.6" PrivateAssets="all" />
+    <PackageReference Include="Nethereum.ABI" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Accounts" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Autogen.ContractApi" Version="4.20.1" />
+    <PackageReference Include="Nethereum.Besu" Version="4.26.0" />
+    <PackageReference Include="Nethereum.BlockchainProcessing" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Contracts" Version="4.26.0" />
+    <PackageReference Include="Nethereum.ENS" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Fx" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Generators" Version="4.21.4" />
+    <PackageReference Include="Nethereum.Geth" Version="4.26.0" />
+    <PackageReference Include="Nethereum.HdWallet" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Hex" Version="4.26.0" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="4.26.0" />
+    <PackageReference Include="Nethereum.JsonRpc.IpcClient" Version="4.26.0" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="4.26.0" />
+    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.26.0" />
+    <PackageReference Include="Nethereum.KeyStore" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Merkle" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Merkle.Patricia" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Metamask" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Microsoft.Configuration.Utils" Version="4.11.0" />
+    <PackageReference Include="Nethereum.Model" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Parity" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Parity.Reactive" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Portable" Version="4.0.5" />
+    <PackageReference Include="Nethereum.Quorum" Version="4.26.0" />
+    <PackageReference Include="Nethereum.RLP" Version="4.26.0" />
+    <PackageReference Include="Nethereum.RPC" Version="4.26.0" />
+    <PackageReference Include="Nethereum.RPC.Reactive" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Rsk" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Signer" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Signer.AzureKeyVault" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Signer.EIP712" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Signer.Ledger" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Signer.Trezor" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Siwe" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Siwe.Core" Version="4.26.0" />
+    <PackageReference Include="Nethereum.StandardNonFungibleTokenERC721" Version="4.26.0" />
+    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="4.26.0" />
+    <PackageReference Include="Nethereum.TestRPCRunner" Version="1.0.0" />
+    <PackageReference Include="Nethereum.TestRPCRunner.Net45" Version="1.0.0" />
+    <PackageReference Include="Nethereum.UI" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Uport" Version="0.0.20" />
+    <PackageReference Include="Nethereum.Util" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
+    <PackageReference Include="Nethereum.Web3Lite" Version="4.26.0" />
+    <PackageReference Include="PSC.Blazor.Components.Chartjs" Version="8.0.8" />
+    <PackageReference Include="SwitchWallet.NEthereumWrapper" Version="1.0.11" />
+  </ItemGroup>
+
+</Project>

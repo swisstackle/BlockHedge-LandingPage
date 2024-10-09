@@ -1,0 +1,718 @@
+﻿@page "/"
+@using PSC.Blazor.Components.Chartjs
+@using PSC.Blazor.Components.Chartjs.Models.Common
+@using PSC.Blazor.Components.Chartjs.Models
+@using System.ComponentModel.DataAnnotations
+
+@inject IJSRuntime JSRuntime
+
+<div class="modern-container">
+    <div class="title-section text-center text-white p-2">
+        <h1 class="mb-0">BlockHedge</h1>
+        <p class="mb-0">Revolutionizing Hedge Funds with Blockchain Technology</p>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="left-column bg-burgundy text-white p-3">
+            <div class="features-section">
+                <div>
+                    <h2 class="section-title">Why choose BlockHedge over other crypto hedge funds?</h2>
+                    <div class="features-grid">
+                        @foreach (var feature in featuresCrypto)
+                        {
+                            <div class="feature-card">
+                                <div class="feature-header">
+                                    <span class="feature-icon">@feature.Icon</span>
+                                    <h3 class="feature-title">@feature.Title</h3>
+                                </div>
+                                <p class="feature-description">@((MarkupString)RenderDescription(feature.Description))</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <h2 class="section-title">Why choose BlockHedge over traditional hedge funds?</h2>
+                    <div class="features-grid">
+                        @foreach (var feature in features)
+                        {
+                            <div class="feature-card">
+                                <div class="feature-header">
+                                    <span class="feature-icon">@feature.Icon</span>
+                                    <h3 class="feature-title">@feature.Title</h3>
+                                </div>
+                                <p class="feature-description">@feature.Description</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-column bg-dark-burgundy text-white p-3">
+            <h2 class="mb-2">Interactive Mock Tour</h2>
+            <div class="row align-items-center mb-2">
+                <div class="col-12 col-md-auto mb-2 mb-md-0">
+                    <button class="btn btn-outline-light btn-sm connect-wallet-btn w-100" @onclick="HandleConnectWallet">
+                        @(walletConnected ? "Wallet Connected" : "Connect Wallet")
+                    </button>
+                </div>
+                <div class="col">
+                    <p class="mb-0 small">- You can connect your crypto wallet already to vote on features that we will implement or create your own.</p>
+                </div>
+            </div>
+
+            <ul class="nav nav-tabs mb-2 flex-wrap">
+                @foreach (var tab in tabs)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == tab ? "active" : "") small" 
+                                @onclick="() => ActivateTab(tab)">@tab</button>
+                    </li>
+                }
+            </ul>
+
+            <div class="tab-content">
+                @if (activeTab == "Vote")
+                {
+                    <div class="voting-overview">
+                        <h3 class="h6 mb-2">Vote on Ideas</h3>
+                        <div class="current-proposal mb-3">
+                            <h4 class="h6 mb-2">Current Proposal</h4>
+                            <p class="proposal-description mb-2 small">@currentProposal.Description</p>
+                            <div class="voting-buttons">
+                                <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true)">Yes</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => Vote(false)">No</button>
+                            </div>
+                            <div class="voting-results mt-2">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: @(currentProposal.YesPercentage)%" aria-valuenow="@currentProposal.YesPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.YesPercentage%</div>
+                                    <div class="progress-bar bg-danger" role="progressbar" style="width: @(currentProposal.NoPercentage)%" aria-valuenow="@currentProposal.NoPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.NoPercentage%</div>
+                                </div>
+                                <p class="mt-1 text-center small">Total Votes: @currentProposal.TotalVotes</p>
+                            </div>
+                        </div>
+
+                        <div class="create-proposal">
+                            <h4 class="h6 mb-2">Do you have an idea that you want to see implemented?</h4>
+                            <EditForm Model="@newProposal" OnValidSubmit="CreateProposal">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                <div class="mb-2">
+                                    <label for="proposalTitle" class="form-label small">Proposal Title</label>
+                                    <InputText id="proposalTitle" class="form-control form-control-sm" @bind-Value="newProposal.Title" />
+                                    <ValidationMessage For="@(() => newProposal.Title)" />
+                                </div>
+                                <div class="mb-2">
+                                    <label for="proposalDescription" class="form-label small">Proposal Description</label>
+                                    <InputTextArea id="proposalDescription" class="form-control form-control-sm" rows="2" @bind-Value="newProposal.Description" />
+                                    <ValidationMessage For="@(() => newProposal.Description)" />
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">Submit Proposal</button>
+                            </EditForm>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "Portfolio Example")
+                {
+                    <div class="portfolio-overview">
+                        <h3 class="h6 mb-2">Portfolio Overview (Hypothetical data)</h3>
+                        <div class="chart-container" id="@chartId">
+                            <Chart Config="_config" @ref="_chart" />
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <p class="mb-0 small">Sharpe Ratio 1.8</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-0 small">Sortino Ratio 2.1</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "Transactions Example")
+                {
+                    <div class="transactions-overview">
+                        <h3 class="h6 mb-2">Recent Transactions (Hypothetical data)</h3>
+                        <div class="transaction-list">
+                            @foreach (var transaction in recentTransactions.Take(5))
+                            {
+                                <div class="transaction-item">
+                                    <div class="transaction-details">
+                                        <h4 class="transaction-title small">@transaction.Action @transaction.Amount @transaction.Asset</h4>
+                                        <p class="transaction-price mb-0 small">Price: $@transaction.Price.ToString("N2")</p>
+                                    </div>
+                                    <button class="btn btn-outline-light btn-sm mt-1 mt-md-0">View</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "Ask a question")
+                {
+                    <div class="ask-question-overview">
+                        <h3 class="h6 mb-2">Ask a Question</h3>
+                        <div class="chat-container">
+                            @foreach (var message in chatMessages)
+                            {
+                                <div class="message @(message.IsUser ? "user-message" : "bot-message")">
+                                    <strong>@(message.IsUser ? "You" : "Bot"):</strong> @message.Content
+                                </div>
+                            }
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm" placeholder="Type your question here..." 
+                                   @bind="currentQuestion" @onkeyup="HandleKeyPress" />
+                            <button class="btn btn-primary btn-sm" @onclick="AskQuestion">
+                                <i class="bi bi-send"></i> Send
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modern-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        background-color: #2C0A0A;
+    }
+
+    .title-section {
+        background: linear-gradient(to right, #4A0E0E, #3A0B0B);
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .title-section h1 {
+        font-size: 1.5rem;
+    }
+
+    .title-section p {
+        font-size: 0.9rem;
+    }
+
+    .content-wrapper {
+        display: flex;
+        flex-direction: row;
+        flex-grow: 1;
+        overflow: hidden;
+        height: calc(100vh - 60px); /* Adjust 60px based on your title section height */
+    }
+
+    .left-column, .right-column {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .left-column {
+        background-color: #4A0E0E;
+    }
+
+    .right-column {
+        background-color: #3A0B0B;
+    }
+
+    .features-section {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-auto-rows: 1fr;
+        gap: 1rem;
+    }
+
+    .feature-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .feature-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+
+    .feature-card:hover::before {
+        opacity: 1;
+    }
+
+    .feature-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .feature-icon {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+        min-width: 2rem;
+        text-align: center;
+    }
+
+    .feature-title {
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .feature-description {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 0;
+        flex-grow: 1;
+        position: relative;
+        z-index: 2;
+        line-height: 1.4;
+    }
+
+    .feature-description .inline-link {
+        display: inline;
+        white-space: nowrap;
+    }
+
+    .feature-description a {
+        color: #ff6b6b;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .feature-description a:hover {
+        color: #ff9999;
+        text-decoration: underline;
+    }
+
+    h2 {
+        font-size: 1.2rem;
+    }
+
+    .nav-tabs {
+        border-bottom: none;
+    }
+
+    .nav-tabs .nav-link {
+        color: rgba(255, 255, 255, 0.7);
+        border: none;
+        border-bottom: 1px solid transparent;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .nav-tabs .nav-link.active,
+    .nav-tabs .nav-link:hover {
+        color: white;
+        background-color: transparent;
+        border-bottom: 1px solid white;
+    }
+
+    .tab-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ask-question-overview {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .chat-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message {
+        margin-bottom: 0.25rem;
+        padding: 0.25rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .user-message {
+        background-color: rgba(0, 123, 255, 0.1);
+        text-align: right;
+        align-self: flex-end;
+        max-width: 80%;
+    }
+
+    .bot-message {
+        background-color: rgba(255, 255, 255, 0.1);
+        align-self: flex-start;
+        max-width: 80%;
+    }
+
+    .input-group {
+        margin-top: auto;
+    }
+
+    .portfolio-overview {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .chart-container {
+        flex-grow: 1;
+        min-height: 300px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-container > div {
+        flex-grow: 1;
+        width: 100%;
+        height: 100% !important;
+    }
+
+    .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .transaction-item {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .voting-buttons .btn {
+        min-width: 60px;
+    }
+
+    .progress {
+        height: 1rem;
+        font-size: 0.7rem;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    @@media (max-width: 991px) {
+        .content-wrapper {
+            flex-direction: column;
+            height: auto;
+        }
+
+        .left-column, .right-column {
+            flex: none;
+            width: 100%;
+            height: auto;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            height: 300px; /* Fixed height for mobile */
+        }
+    }
+
+    h2.section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #fff;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+        border-left: 4px solid #ff6b6b;
+        border-radius: 0 8px 8px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        line-height: 1.3;
+    }
+
+    h2.section-title::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+        transform: skewX(-25deg);
+        animation: shine 3s infinite;
+    }
+
+    @@keyframes shine {
+        0% { left: -50%; }
+        100% { left: 150%; }
+    }
+
+    /* Custom Scrollbar Styles */
+    .left-column, .right-column {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+    }
+
+    .left-column::-webkit-scrollbar, .right-column::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .left-column::-webkit-scrollbar-track, .right-column::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+    }
+
+    .left-column::-webkit-scrollbar-thumb, .right-column::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+
+    .left-column::-webkit-scrollbar-thumb:hover, .right-column::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Ensure the content doesn't overlap with the scrollbar */
+    .left-column, .right-column {
+        padding-right: 1.5rem;
+    }
+</style>
+
+@code {
+    private bool walletConnected = false;
+    private string email = string.Empty;
+    private string activeTab = "Vote";
+    private List<string> tabs = new List<string> { "Vote","Portfolio Example", "Transactions Example", "Ask a question" };
+    private string RenderDescription(string description)
+    {
+        return description.Contains("<a") ? ((MarkupString)description).ToString() : description;
+    }
+    private List<(string Icon, string Title, string Description)> features = new()
+    {
+        ("🖱️", "Efficiency", "Get in and out with just a couple of clicks"),
+        ("↔️", "Low Entry Barrier", "Start investing with minimal capital"),
+        ("🛡️", "Insured Investment", "Protection against smart contract hacks"),
+        ("👁️", "Transparency", "All trades are linked to their transactions and visible to investors. It is impossible for us to hide them because everything on the Blockchain is public and immutable."),
+        ("👥", "DAO Governance", "Community members can vote on important decisions like fees"),
+        ("📈", "Performance Tracking", "Real-time updates on your investment performance. You will be able to access immutable, detailed and secure real time reports.")
+    };
+
+    private List<(string Icon, string Title, string Description)> featuresCrypto = new()
+    {
+        ("📊", "Risk Adjusted Return Profiles", "Unlike staking services, we provide actual risk-adjusted return profiles."),
+        ("📈", "Proven Traditional Finance Methods", "We provide metrics like Sharpe Ratio, which will tell you how good your returns are, given the amount of risk you are taking."),
+        ("🔍", "Comparability", "Using those metrics, you can compare us to traditional finance benchmarks as opposed to being on a crypto island."),
+        ("🔒", "Hack Security", "We will provide a 100% insurance for any losses in case of a hack."),
+        ("👮", "Identity Verification", "We will prevent government attacks by implementing identity verification through the <span class=\"inline-link\"><a href=\"https://docs.rarimo.com/accounts/zk-passport/\" target=\"_blank\">Rarimo protocol</a></span> (anonymous / decentralized KYC)"),
+        ("🔄", "Diversification", "Our portfolio will include crypto assets pegged to traditional stocks and commodities to reduce dependency on the crypto market when it goes downwards.")
+    };
+
+    private Chart _chart;
+    private LineChartConfig _config;
+    private string chartId = $"chart-{Guid.NewGuid().ToString()}";
+
+    protected override void OnInitialized()
+    {
+        _config = new LineChartConfig
+        {
+            Options = new Options
+            {
+                Responsive = true,
+                MaintainAspectRatio = false,
+                Animation = false // Disable animations
+            }
+        };
+
+        var labels = new List<string> { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        var blockHedgeData = new List<decimal?> { 100, 110, 105, 125, 118, 117, 131, 135, 132, 139, 150, 165 };
+            
+        var marketData = new List<decimal?> { 100, 95, 105, 125, 118, 117, 131, 135, 132, 139, 150, 171 };
+
+        _config.Data = new LineData
+        {
+            Labels = labels,
+            Datasets = new List<LineDataset>
+            {
+                new LineDataset
+                {
+                    Label = "BlockHedge",
+                    Data = blockHedgeData,
+                    BackgroundColor = "rgba(75, 192, 192, 0.2)",
+                    BorderColor = "rgb(75, 192, 192)",
+                    BorderWidth = 1,
+                    PointRadius = 3,
+                },
+                new LineDataset
+                {
+                    Label = "Renessaince",
+                    Data = marketData,
+                    BackgroundColor = "rgba(255, 99, 132, 0.2)",
+                    BorderColor = "rgb(255, 99, 132)",
+                    BorderWidth = 1,
+                    PointRadius = 3,
+                },
+                new LineDataset
+                {
+                    Label = "S&P 500",
+                    Data = new List<decimal?> { 100, 105, 110, 115, 112, 118, 125, 123, 130, 128, 139, 155 },
+                    BackgroundColor = "rgba(54, 162, 235, 0.2)",
+                    BorderColor = "rgb(54, 162, 235)",
+                    BorderWidth = 1,
+                    PointRadius = 3,
+                }
+            }
+        };
+    }
+
+    private void HandleConnectWallet()
+    {
+        walletConnected = !walletConnected;
+    }
+
+    private void ActivateTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private List<(string Action, decimal Amount, string Asset, decimal Price)> recentTransactions = new()
+    {
+        ("Buy", 0.5m, "BTC", 30000),
+        ("Sell", 10, "ETH", 2000),
+        ("Buy", 100, "LINK", 10),
+        ("Sell", 5000, "USDT", 1),
+        ("Buy", 2, "SOL", 50),
+        ("Buy", 1, "ETH PUT", 550),
+        ("Sell", 0.75m, "BTC", 32000),
+        ("Buy", 15, "ETH", 2100),
+        ("Sell", 120, "LINK", 12),
+        ("Buy", 6000, "USDT", 1),
+        ("Sell", 3, "SOL", 55),
+        ("Sell", 1, "ETH PUT", 580),
+        ("Buy", 1.25m, "BTC", 31000),
+        ("Sell", 12, "ETH", 2200),
+        ("Buy", 130, "LINK", 11),
+        ("Sell", 7000, "USDT", 1),
+        ("Buy", 4, "SOL", 60),
+        ("Buy", 2, "ETH PUT", 600)
+    };
+
+    private Proposal currentProposal = new Proposal
+    {
+        Description = "Reduce platform fees by 0.5%",
+        YesVotes = 75,
+        NoVotes = 25
+    };
+
+    private void Vote(bool voteYes)
+    {
+        if (voteYes)
+        {
+            currentProposal.YesVotes++;
+        }
+        else
+        {
+            currentProposal.NoVotes++;
+        }
+    }
+
+    private NewProposal newProposal = new NewProposal();
+
+    private void CreateProposal()
+    {
+        // In a real application, this would submit the proposal to the blockchain
+        // For now, we'll just show an alert
+        JSRuntime.InvokeVoidAsync("alert", $"New proposal submitted:\nTitle: {newProposal.Title}\nDescription: {newProposal.Description}");
+
+        // Clear the form
+        newProposal = new NewProposal();
+    }
+
+    private class Proposal
+    {
+        public string Description { get; set; }
+        public int YesVotes { get; set; }
+        public int NoVotes { get; set; }
+        public int TotalVotes => YesVotes + NoVotes;
+        public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
+        public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
+    }
+
+    private class NewProposal
+    {
+        [Required(ErrorMessage = "Title is required")]
+        [StringLength(100, ErrorMessage = "Title must be between 5 and 100 characters", MinimumLength = 5)]
+        public string Title { get; set; }
+
+        [Required(ErrorMessage = "Description is required")]
+        [StringLength(500, ErrorMessage = "Description must be between 10 and 500 characters", MinimumLength = 10)]
+        public string Description { get; set; }
+    }
+
+    private List<ChatMessage> chatMessages = new List<ChatMessage>
+    {
+        new ChatMessage { IsUser = false, Content = "Hello! How can I assist you today?" }
+    };
+    private string currentQuestion = string.Empty;
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AskQuestion();
+        }
+    }
+
+    private void AskQuestion()
+    {
+        if (!string.IsNullOrWhiteSpace(currentQuestion))
+        {
+            chatMessages.Add(new ChatMessage { IsUser = true, Content = currentQuestion });
+            string botResponse = GetBotResponse(currentQuestion);
+            chatMessages.Add(new ChatMessage { IsUser = false, Content = botResponse });
+            currentQuestion = string.Empty;
+        }
+    }
+
+    private string GetBotResponse(string question)
+    {
+        // In a real application, this would be connected to an AI or knowledge base
+        // For now, we'll return a simple response
+        return $"Thank you for your question about '{question}'. Our team is working on providing detailed information about BlockHedge. In the meantime, please check our FAQ section or contact our support team for more specific inquiries.";
+    }
+
+    private class ChatMessage
+    {
+        public bool IsUser { get; set; }
+        public string Content { get; set; }
+    }
+}
+
+}

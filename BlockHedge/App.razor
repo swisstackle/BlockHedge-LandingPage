@@ -1,0 +1,15 @@
+<!-- Main router component for the Blazor WebAssembly application -->
+<Router AppAssembly="@typeof(App).Assembly">
+    <!-- Handles successfully matched routes -->
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <!-- Handles routes that don't match any registered route -->
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
