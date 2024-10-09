@@ -2,6 +2,8 @@
 @using PSC.Blazor.Components.Chartjs
 @using PSC.Blazor.Components.Chartjs.Models.Common
 @using PSC.Blazor.Components.Chartjs.Models
+@using System.ComponentModel.DataAnnotations
+
 @inject IJSRuntime JSRuntime
 
 <div class="modern-container">
@@ -92,17 +94,21 @@
 
                         <div class="create-proposal">
                             <h4 class="h6 mb-2">Do you have an idea that you want to see implemented?</h4>
-                            <form @onsubmit="CreateProposal">
+                            <EditForm Model="@newProposal" OnValidSubmit="CreateProposal">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
                                 <div class="mb-2">
                                     <label for="proposalTitle" class="form-label small">Proposal Title</label>
-                                    <input type="text" class="form-control form-control-sm" id="proposalTitle" @bind="newProposalTitle" required>
+                                    <InputText id="proposalTitle" class="form-control form-control-sm" @bind-Value="newProposal.Title" />
+                                    <ValidationMessage For="@(() => newProposal.Title)" />
                                 </div>
                                 <div class="mb-2">
                                     <label for="proposalDescription" class="form-label small">Proposal Description</label>
-                                    <textarea class="form-control form-control-sm" id="proposalDescription" rows="2" @bind="newProposalDescription" required></textarea>
+                                    <InputTextArea id="proposalDescription" class="form-control form-control-sm" rows="2" @bind-Value="newProposal.Description" />
+                                    <ValidationMessage For="@(() => newProposal.Description)" />
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm">Submit Proposal</button>
-                            </form>
+                            </EditForm>
                         </div>
                     </div>
                 }
@@ -637,18 +643,16 @@
         }
     }
 
-    private string newProposalTitle = string.Empty;
-    private string newProposalDescription = string.Empty;
+    private NewProposal newProposal = new NewProposal();
 
     private void CreateProposal()
     {
         // In a real application, this would submit the proposal to the blockchain
         // For now, we'll just show an alert
-        JSRuntime.InvokeVoidAsync("alert", $"New proposal submitted:\nTitle: {newProposalTitle}\nDescription: {newProposalDescription}");
+        JSRuntime.InvokeVoidAsync("alert", $"New proposal submitted:\nTitle: {newProposal.Title}\nDescription: {newProposal.Description}");
 
         // Clear the form
-        newProposalTitle = string.Empty;
-        newProposalDescription = string.Empty;
+        newProposal = new NewProposal();
     }
 
     private class Proposal
@@ -659,6 +663,17 @@
         public int TotalVotes => YesVotes + NoVotes;
         public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
         public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
+    }
+
+    private class NewProposal
+    {
+        [Required(ErrorMessage = "Title is required")]
+        [StringLength(100, ErrorMessage = "Title must be between 5 and 100 characters", MinimumLength = 5)]
+        public string Title { get; set; }
+
+        [Required(ErrorMessage = "Description is required")]
+        [StringLength(500, ErrorMessage = "Description must be between 10 and 500 characters", MinimumLength = 10)]
+        public string Description { get; set; }
     }
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
