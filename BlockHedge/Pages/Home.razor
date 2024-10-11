@@ -3,7 +3,7 @@
 @using PSC.Blazor.Components.Chartjs.Models.Common
 @using PSC.Blazor.Components.Chartjs.Models
 @using System.ComponentModel.DataAnnotations
-
+@inject BlockHedge.Services.WalletService WalletService
 @inject IJSRuntime JSRuntime
 
 <div class="modern-container">
@@ -53,7 +53,7 @@
             <div class="row align-items-center mb-2">
                 <div class="col-12 col-md-auto mb-2 mb-md-0">
                     <button class="btn btn-outline-light btn-sm connect-wallet-btn w-100" @onclick="HandleConnectWallet">
-                        @(walletConnected ? "Wallet Connected" : "Connect Wallet")
+                        @(walletConnected ? $"Connected: {TruncateAddress(connectedAddress)}" : "Connect Wallet")
                     </button>
                 </div>
                 <div class="col">
@@ -508,7 +508,7 @@
 
 @code {
     private bool walletConnected = false;
-    private string email = string.Empty;
+    private string connectedAddress = string.Empty;
     private string activeTab = "Vote";
     private List<string> tabs = new List<string> { "Vote","Portfolio Example", "Transactions Example", "Ask a question" };
     private string RenderDescription(string description)
@@ -539,8 +539,16 @@
     private LineChartConfig _config;
     private string chartId = $"chart-{Guid.NewGuid().ToString()}";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        walletConnected = await WalletService.CheckIfWalletIsConnected();
+        if (walletConnected)
+        {
+            connectedAddress = WalletService.GetSelectedAccount();
+        }
+
+        WalletService.AccountChanged += HandleAccountChanged;
+
         _config = new LineChartConfig
         {
             Options = new Options
@@ -592,9 +600,32 @@
         };
     }
 
-    private void HandleConnectWallet()
+    private async Task HandleConnectWallet()
     {
-        walletConnected = !walletConnected;
+        if (!walletConnected)
+        {
+            var address = await WalletService.ConnectWallet();
+            if (!string.IsNullOrEmpty(address))
+            {
+                walletConnected = true;
+                connectedAddress = address;
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Failed to connect wallet. Please make sure Metamask is installed and try again.");
+            }
+        }
+        else
+        {
+            walletConnected = false;
+            connectedAddress = string.Empty;
+        }
+    }
+
+    private string TruncateAddress(string address)
+    {
+        if (string.IsNullOrEmpty(address)) return string.Empty;
+        return $"{address.Substring(0, 6)}...{address.Substring(address.Length - 4)}";
     }
 
     private void ActivateTab(string tab)
@@ -713,6 +744,16 @@
         public bool IsUser { get; set; }
         public string Content { get; set; }
     }
-}
 
+    private void HandleAccountChanged(string newAccount)
+    {
+        walletConnected = !string.IsNullOrEmpty(newAccount);
+        connectedAddress = newAccount ?? string.Empty;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        WalletService.AccountChanged -= HandleAccountChanged;
+    }
 }
