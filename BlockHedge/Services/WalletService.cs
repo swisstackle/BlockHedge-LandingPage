@@ -21,13 +21,20 @@ namespace BlockHedge.Services
 
         public async Task<bool> CheckIfWalletIsConnected()
         {
-            var accounts = await _jsRuntime.InvokeAsync<string[]>("ethereum.request", new object[] { new { method = "eth_accounts" } });
-            if (accounts.Length > 0)
+            try
             {
-                _selectedAccount = accounts[0];
-                return true;
+                var accounts = await _jsRuntime.InvokeAsync<string[]>("ethereum.request", new object[] { new { method = "eth_accounts" } });
+                if (accounts.Length > 0)
+                {
+                    _selectedAccount = accounts[0];
+                    return true;
+                }
+                return false;
             }
-            return false;
+            catch (JSException ex)
+            {
+                return false;
+            }
         }
 
         public async Task<string> ConnectWallet()

@@ -541,6 +541,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
         walletConnected = await WalletService.CheckIfWalletIsConnected();
         if (walletConnected)
         {
@@ -625,6 +626,8 @@
     private string TruncateAddress(string address)
     {
         if (string.IsNullOrEmpty(address)) return string.Empty;
+        if (address.Length <= 10) return address;
+
         return $"{address.Substring(0, 6)}...{address.Substring(address.Length - 4)}";
     }
 
