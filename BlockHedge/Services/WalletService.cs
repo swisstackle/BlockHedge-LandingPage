@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
+using BlockHedge.Services;
 
 namespace BlockHedge.Services
 {
@@ -7,15 +8,17 @@ namespace BlockHedge.Services
     {
         private readonly IJSRuntime _jsRuntime;
         private string _selectedAccount;
+        private readonly VotingContractService _votingContractService;
 
         public event Action<string> AccountChanged;
 
         // Static field to hold the current instance
         private static WalletService _instance;
 
-        public WalletService(IJSRuntime jsRuntime)
+        public WalletService(IJSRuntime jsRuntime, VotingContractService votingContractService)
         {
             _jsRuntime = jsRuntime;
+            _votingContractService = votingContractService;
             _instance = this;
         }
 
@@ -80,6 +83,58 @@ namespace BlockHedge.Services
                 _selectedAccount = null;
                 AccountChanged?.Invoke(null);
             }
+        }
+
+        public async Task<string> CreateProposal(string title, string description)
+        {
+            if (string.IsNullOrEmpty(_selectedAccount))
+            {
+                throw new InvalidOperationException("Wallet not connected");
+            }
+
+            return await _votingContractService.CreateNewProposal(_selectedAccount, title, description);
+        }
+
+        public async Task<string> VoteYes(int proposalIndex)
+        {
+            if (string.IsNullOrEmpty(_selectedAccount))
+            {
+                throw new InvalidOperationException("Wallet not connected");
+            }
+
+            return await _votingContractService.VoteYes(_selectedAccount, proposalIndex);
+        }
+
+        public async Task<string> VoteNo(int proposalIndex)
+        {
+            if (string.IsNullOrEmpty(_selectedAccount))
+            {
+                throw new InvalidOperationException("Wallet not connected");
+            }
+
+            return await _votingContractService.VoteNo(_selectedAccount, proposalIndex);
+        }
+
+        public async Task<ProposalDTO> GetProposal(int index)
+        {
+            return await _votingContractService.GetProposal(index);
+        }
+
+        //public void StartListeningForEvents()
+        //{
+        //    _votingContractService.StartListeningForEvents();
+        //}
+
+        public event EventHandler<NewProposalEventDTO> OnNewProposal
+        {
+            add { _votingContractService.OnNewProposal += value; }
+            remove { _votingContractService.OnNewProposal -= value; }
+        }
+
+        public event EventHandler<VoteCastEventDTO> OnVoteCast
+        {
+            add { _votingContractService.OnVoteCast += value; }
+            remove { _votingContractService.OnVoteCast -= value; }
         }
     }
 }

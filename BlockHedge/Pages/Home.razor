@@ -3,7 +3,8 @@
 @using PSC.Blazor.Components.Chartjs.Models.Common
 @using PSC.Blazor.Components.Chartjs.Models
 @using System.ComponentModel.DataAnnotations
-@inject BlockHedge.Services.WalletService WalletService
+@using BlockHedge.Services
+@inject WalletService WalletService
 @inject IJSRuntime JSRuntime
 
 <div class="modern-container">
@@ -539,6 +540,9 @@
     private LineChartConfig _config;
     private string chartId = $"chart-{Guid.NewGuid().ToString()}";
 
+    private List<ProposalDTO> proposals = new List<ProposalDTO>();
+    private int currentProposalIndex = 0;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -549,6 +553,12 @@
         }
 
         WalletService.AccountChanged += HandleAccountChanged;
+        WalletService.OnNewProposal += HandleNewProposal;
+        WalletService.OnVoteCast += HandleVoteCast;
+
+        // WalletService.StartListeningForEvents();
+
+        await LoadProposals();
 
         _config = new LineChartConfig
         {
@@ -599,6 +609,84 @@
                 }
             }
         };
+    }
+
+    private async Task LoadProposals()
+    {
+        proposals.Clear();
+        int index = 0;
+        while (true)
+        {
+            try
+            {
+                var proposal = await WalletService.GetProposal(index);
+                proposals.Add(proposal);
+                index++;
+            }
+            catch
+            {
+                break;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task CreateProposal()
+    {
+        if (!walletConnected)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please connect your wallet first.");
+            return;
+        }
+
+        try
+        {
+            await WalletService.CreateProposal(newProposal.Title, newProposal.Description);
+            newProposal = new NewProposal();
+            await JSRuntime.InvokeVoidAsync("alert", "Proposal created successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error creating proposal: {ex.Message}");
+        }
+    }
+
+    private async Task Vote(bool voteYes)
+    {
+        if (!walletConnected)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please connect your wallet first.");
+            return;
+        }
+
+        try
+        {
+            if (voteYes)
+            {
+                await WalletService.VoteYes(currentProposalIndex);
+            }
+            else
+            {
+                await WalletService.VoteNo(currentProposalIndex);
+            }
+            await JSRuntime.InvokeVoidAsync("alert", "Vote cast successfully!");
+            await LoadProposals();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error casting vote: {ex.Message}");
+        }
+    }
+
+    private void HandleNewProposal(object sender, NewProposalEventDTO e)
+    {
+        proposals.Add(new ProposalDTO { Title = e.Title, Description = e.Description });
+        StateHasChanged();
+    }
+
+    private async void HandleVoteCast(object sender, VoteCastEventDTO e)
+    {
+        await LoadProposals();
     }
 
     private async Task HandleConnectWallet()
@@ -665,50 +753,7 @@
         NoVotes = 25
     };
 
-    private void Vote(bool voteYes)
-    {
-        if (voteYes)
-        {
-            currentProposal.YesVotes++;
-        }
-        else
-        {
-            currentProposal.NoVotes++;
-        }
-    }
-
     private NewProposal newProposal = new NewProposal();
-
-    private void CreateProposal()
-    {
-        // In a real application, this would submit the proposal to the blockchain
-        // For now, we'll just show an alert
-        JSRuntime.InvokeVoidAsync("alert", $"New proposal submitted:\nTitle: {newProposal.Title}\nDescription: {newProposal.Description}");
-
-        // Clear the form
-        newProposal = new NewProposal();
-    }
-
-    private class Proposal
-    {
-        public string Description { get; set; }
-        public int YesVotes { get; set; }
-        public int NoVotes { get; set; }
-        public int TotalVotes => YesVotes + NoVotes;
-        public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
-        public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
-    }
-
-    private class NewProposal
-    {
-        [Required(ErrorMessage = "Title is required")]
-        [StringLength(100, ErrorMessage = "Title must be between 5 and 100 characters", MinimumLength = 5)]
-        public string Title { get; set; }
-
-        [Required(ErrorMessage = "Description is required")]
-        [StringLength(500, ErrorMessage = "Description must be between 10 and 500 characters", MinimumLength = 10)]
-        public string Description { get; set; }
-    }
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
@@ -758,5 +803,21 @@
     public void Dispose()
     {
         WalletService.AccountChanged -= HandleAccountChanged;
+    }
+
+    private class Proposal
+    {
+        public string Description { get; set; }
+        public int YesVotes { get; set; }
+        public int NoVotes { get; set; }
+        public int TotalVotes => YesVotes + NoVotes;
+        public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
+        public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
+    }
+
+    private class NewProposal
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
     }
 }
