@@ -39,13 +39,21 @@ namespace BlockHedge.Services
 
         public async Task<string> ConnectWallet()
         {
-            var accounts = await _jsRuntime.InvokeAsync<string[]>("ethereum.request", new object[] { new { method = "eth_requestAccounts" } });
-            if (accounts.Length > 0)
+            try
             {
-                _selectedAccount = accounts[0];
-                return _selectedAccount;
+                var accounts = await _jsRuntime.InvokeAsync<string[]>("ethereum.request", new object[] { new { method = "eth_requestAccounts" } });
+                if (accounts.Length > 0)
+                {
+                    _selectedAccount = accounts[0];
+                    return _selectedAccount;
+                }
+                return null;
             }
-            return null;
+            catch (JSException ex)
+            {
+                Console.WriteLine($"Error connecting wallet: {ex.Message}");
+                return null;
+            }
         }
 
         public string GetSelectedAccount()
