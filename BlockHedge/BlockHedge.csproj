@@ -11,7 +11,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" PrivateAssets="all" />
     <PackageReference Include="Nethereum.Contracts" Version="4.26.0" />
     <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.26.0" />
-    <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
+	  <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
+	  <PackageReference Include="Nethereum.UI" Version="4.26.0" />
     <PackageReference Include="PSC.Blazor.Components.Chartjs" Version="8.0.8" />
   </ItemGroup>
 

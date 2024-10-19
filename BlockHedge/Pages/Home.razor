@@ -77,23 +77,39 @@
                 {
                     <div class="voting-overview">
                         <h3 class="h6 mb-2">Vote on Ideas</h3>
-                        <div class="current-proposal mb-3">
-                            <h4 class="h6 mb-2">Current Proposal</h4>
-                            <p class="proposal-description mb-2 small">@currentProposal.Description</p>
-                            <div class="voting-buttons">
-                                <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true)">Yes</button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => Vote(false)">No</button>
-                            </div>
-                            <div class="voting-results mt-2">
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: @(currentProposal.YesPercentage)%" aria-valuenow="@currentProposal.YesPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.YesPercentage%</div>
-                                    <div class="progress-bar bg-danger" role="progressbar" style="width: @(currentProposal.NoPercentage)%" aria-valuenow="@currentProposal.NoPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.NoPercentage%</div>
+                        @if (proposals.Count > 0)
+                        {
+                            @for (int i = startIndex; i < Math.Min(startIndex + pageSize, proposals.Count); i++)
+                            {
+                                var proposal = proposals[i];
+                                <div class="current-proposal mb-3">
+                                    <h4 class="h6 mb-2">Proposal @(i + 1): @proposal.Title</h4>
+                                    <p class="proposal-description mb-2 small">@proposal.Description</p>
+                                    <div class="voting-buttons">
+                                        <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true, i)">Yes</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => Vote(false, i)">No</button>
+                                    </div>
+                                    <div class="voting-results mt-2">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @(proposal.YesPercentage)%" aria-valuenow="@proposal.YesPercentage" aria-valuemin="0" aria-valuemax="100">@proposal.YesPercentage%</div>
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: @(proposal.NoPercentage)%" aria-valuenow="@proposal.NoPercentage" aria-valuemin="0" aria-valuemax="100">@proposal.NoPercentage%</div>
+                                        </div>
+                                        <p class="mt-1 text-center small">Total Votes: @proposal.TotalVotes</p>
+                                    </div>
                                 </div>
-                                <p class="mt-1 text-center small">Total Votes: @currentProposal.TotalVotes</p>
+                            }
+                            <div class="pagination-controls">
+                                <button class="btn btn-secondary btn-sm" @onclick="PreviousPage" disabled="@(startIndex == 0)">Previous</button>
+                                <span class="mx-2">Page @(currentPage + 1) of @totalPages</span>
+                                <button class="btn btn-secondary btn-sm" @onclick="NextPage" disabled="@(startIndex + pageSize >= proposals.Count)">Next</button>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <p>No proposals available.</p>
+                        }
 
-                        <div class="create-proposal">
+                        <div class="create-proposal mt-4">
                             <h4 class="h6 mb-2">Do you have an idea that you want to see implemented?</h4>
                             <EditForm Model="@newProposal" OnValidSubmit="CreateProposal">
                                 <DataAnnotationsValidator />
@@ -541,7 +557,10 @@
     private string chartId = $"chart-{Guid.NewGuid().ToString()}";
 
     private List<ProposalDTO> proposals = new List<ProposalDTO>();
-    private int currentProposalIndex = 0;
+    private int startIndex = 0;
+    private int pageSize = 5;
+    private int currentPage = 0;
+    private int totalPages => (int)Math.Ceiling((double)proposals.Count / pageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -553,8 +572,8 @@
         }
 
         WalletService.AccountChanged += HandleAccountChanged;
-        WalletService.OnNewProposal += HandleNewProposal;
-        WalletService.OnVoteCast += HandleVoteCast;
+        // WalletService.OnNewProposal += HandleNewProposal;
+        // WalletService.OnVoteCast += HandleVoteCast;
 
         // WalletService.StartListeningForEvents();
 
@@ -651,7 +670,7 @@
         }
     }
 
-    private async Task Vote(bool voteYes)
+    private async Task Vote(bool voteYes, int proposalIndex)
     {
         if (!walletConnected)
         {
@@ -663,11 +682,11 @@
         {
             if (voteYes)
             {
-                await WalletService.VoteYes(currentProposalIndex);
+                await WalletService.VoteYes(proposalIndex);
             }
             else
             {
-                await WalletService.VoteNo(currentProposalIndex);
+                await WalletService.VoteNo(proposalIndex);
             }
             await JSRuntime.InvokeVoidAsync("alert", "Vote cast successfully!");
             await LoadProposals();
@@ -678,16 +697,34 @@
         }
     }
 
-    private void HandleNewProposal(object sender, NewProposalEventDTO e)
+    private void NextPage()
     {
-        proposals.Add(new ProposalDTO { Title = e.Title, Description = e.Description });
-        StateHasChanged();
+        if (startIndex + pageSize < proposals.Count)
+        {
+            startIndex += pageSize;
+            currentPage++;
+        }
     }
 
-    private async void HandleVoteCast(object sender, VoteCastEventDTO e)
+    private void PreviousPage()
     {
-        await LoadProposals();
+        if (startIndex - pageSize >= 0)
+        {
+            startIndex -= pageSize;
+            currentPage--;
+        }
     }
+
+    // private void HandleNewProposal(object sender, NewProposalEventDTO e)
+    // {
+    //     proposals.Add(new ProposalDTO { Title = e.Title, Description = e.Description });
+    //     StateHasChanged();
+    // }
+
+    // private async void HandleVoteCast(object sender, VoteCastEventDTO e)
+    // {
+    //     await LoadProposals();
+    // }
 
     private async Task HandleConnectWallet()
     {

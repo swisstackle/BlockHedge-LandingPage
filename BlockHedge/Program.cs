@@ -2,20 +2,26 @@ using BlockHedge;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using BlockHedge.Services;
+using Nethereum.UI;
+using Nethereum.Metamask;
+using Nethereum.Metamask.Blazor;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<BlockHedge.Services.WalletService>();
+builder.Services.AddSingleton<IMetamaskInterop, MetamaskBlazorInterop>();
 
-// Register WalletService and VotingContractService
+// Register VotingContractService
 builder.Services.AddSingleton<VotingContractService>(sp => 
-    new VotingContractService(
-        "https://polygon-rpc.com", // Polygon mainnet RPC URL
-        "0x8491C5B2385b86fDdD871F0f983b525D5ddB2C20" // Contract address from contracts.txt
-    )
+    new VotingContractService("0x9190428F46c1c6eB765dc7F7169eF3470eccd903")
 );
+
+// Register IEthereumHostProvider
+builder.Services.AddSingleton<IEthereumHostProvider, MetamaskHostProvider>();
+
+// Register WalletService
+builder.Services.AddScoped<WalletService>();
 
 await builder.Build().RunAsync();
