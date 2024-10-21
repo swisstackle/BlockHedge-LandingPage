@@ -37,24 +37,6 @@
         window.ethereum.on('accountsChanged', function (accounts) {
             DotNet.invokeMethodAsync('BlockHedge', 'OnAccountsChanged', accounts);
         });
-           window.NethereumMetamaskInterop = {
-     isMetamaskAvailable: function () {
-       return typeof window.ethereum !== 'undefined';
-     },
-     GetAddresses: async function () {
-       if (typeof window.ethereum !== 'undefined') {
-         try {
-           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-           return accounts;
-         } catch (error) {
-           console.error('Error getting addresses:', error);
-           return [];
-         }
-       }
-       return [];
-     },
-     // Add other necessary methods here
-   };
     </script>
 </body>
 
