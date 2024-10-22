@@ -79,15 +79,15 @@
                         <h3 class="h6 mb-2">Vote on Ideas</h3>
                         @if (proposals.Count > 0)
                         {
-                            @for (int i = startIndex; i < Math.Min(startIndex + pageSize, proposals.Count); i++)
+                            @for (int i = startIndex; i < Math.Min(startIndex + pageSize, proposals.Count); ++i)
                             {
                                 var proposal = proposals[i];
                                 <div class="current-proposal mb-3">
                                     <h4 class="h6 mb-2">Proposal @(i + 1): @proposal.Title</h4>
                                     <p class="proposal-description mb-2 small">@proposal.Description</p>
                                     <div class="voting-buttons">
-                                        <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true, i)">Yes</button>
-                                        <button class="btn btn-danger btn-sm" @onclick="() => Vote(false, i)">No</button>
+                                        <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true, i - 1)">Yes</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => Vote(false, i - 1)">No</button>
                                     </div>
                                     <div class="voting-results mt-2">
                                         <div class="progress">
