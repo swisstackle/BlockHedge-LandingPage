@@ -31,14 +31,23 @@ namespace BlockHedge.Services
 
         public async Task<bool> CheckIfWalletIsConnected()
         {
-            var selectedAccount = await _ethereumHostProvider.GetProviderSelectedAccountAsync();
-            if (!string.IsNullOrEmpty(selectedAccount))
+            try
             {
-                _selectedAccount = selectedAccount;
-                _web3 = await _ethereumHostProvider.GetWeb3Async();
-                return true;
+                var selectedAccount = await _ethereumHostProvider.GetProviderSelectedAccountAsync();
+                if (!string.IsNullOrEmpty(selectedAccount))
+                {
+                    _selectedAccount = selectedAccount;
+                    _web3 = await _ethereumHostProvider.GetWeb3Async();
+                    return true;
+                }
+                return false;
+
             }
-            return false;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking wallet connection: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<string> ConnectWallet()
