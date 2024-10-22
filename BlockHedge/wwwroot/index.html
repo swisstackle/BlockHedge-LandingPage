@@ -32,6 +32,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
     <script src="_content/PSC.Blazor.Components.Chartjs/lib/Chart.js/chart.js"></script>
     <script src="_content/PSC.Blazor.Components.Chartjs/Chart.js" type="module"></script>
+    <script src="./js/mask.js"></script>
     <script>
         window.ethereum.on('accountsChanged', function (accounts) {
             DotNet.invokeMethodAsync('BlockHedge', 'OnAccountsChanged', accounts);

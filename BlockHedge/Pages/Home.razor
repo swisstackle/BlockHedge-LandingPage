@@ -3,7 +3,8 @@
 @using PSC.Blazor.Components.Chartjs.Models.Common
 @using PSC.Blazor.Components.Chartjs.Models
 @using System.ComponentModel.DataAnnotations
-@inject BlockHedge.Services.WalletService WalletService
+@using BlockHedge.Services
+@inject WalletService WalletService
 @inject IJSRuntime JSRuntime
 
 <div class="modern-container">
@@ -76,23 +77,39 @@
                 {
                     <div class="voting-overview">
                         <h3 class="h6 mb-2">Vote on Ideas</h3>
-                        <div class="current-proposal mb-3">
-                            <h4 class="h6 mb-2">Current Proposal</h4>
-                            <p class="proposal-description mb-2 small">@currentProposal.Description</p>
-                            <div class="voting-buttons">
-                                <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true)">Yes</button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => Vote(false)">No</button>
-                            </div>
-                            <div class="voting-results mt-2">
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: @(currentProposal.YesPercentage)%" aria-valuenow="@currentProposal.YesPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.YesPercentage%</div>
-                                    <div class="progress-bar bg-danger" role="progressbar" style="width: @(currentProposal.NoPercentage)%" aria-valuenow="@currentProposal.NoPercentage" aria-valuemin="0" aria-valuemax="100">@currentProposal.NoPercentage%</div>
+                        @if (proposals.Count > 0)
+                        {
+                            @for (int i = startIndex; i < Math.Min(startIndex + pageSize, proposals.Count); ++i)
+                            {
+                                var proposal = proposals[i];
+                                <div class="current-proposal mb-3">
+                                    <h4 class="h6 mb-2">Proposal @(i + 1): @proposal.Title</h4>
+                                    <p class="proposal-description mb-2 small">@proposal.Description</p>
+                                    <div class="voting-buttons">
+                                        <button class="btn btn-success btn-sm me-2 mb-2 mb-md-0" @onclick="() => Vote(true, i - 1)">Yes</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => Vote(false, i - 1)">No</button>
+                                    </div>
+                                    <div class="voting-results mt-2">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @(proposal.YesPercentage)%" aria-valuenow="@proposal.YesPercentage" aria-valuemin="0" aria-valuemax="100">@proposal.YesPercentage%</div>
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: @(proposal.NoPercentage)%" aria-valuenow="@proposal.NoPercentage" aria-valuemin="0" aria-valuemax="100">@proposal.NoPercentage%</div>
+                                        </div>
+                                        <p class="mt-1 text-center small">Total Votes: @proposal.TotalVotes</p>
+                                    </div>
                                 </div>
-                                <p class="mt-1 text-center small">Total Votes: @currentProposal.TotalVotes</p>
+                            }
+                            <div class="pagination-controls">
+                                <button class="btn btn-secondary btn-sm" @onclick="PreviousPage" disabled="@(startIndex == 0)">Previous</button>
+                                <span class="mx-2">Page @(currentPage + 1) of @totalPages</span>
+                                <button class="btn btn-secondary btn-sm" @onclick="NextPage" disabled="@(startIndex + pageSize >= proposals.Count)">Next</button>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <p>No proposals available.</p>
+                        }
 
-                        <div class="create-proposal">
+                        <div class="create-proposal mt-4">
                             <h4 class="h6 mb-2">Do you have an idea that you want to see implemented?</h4>
                             <EditForm Model="@newProposal" OnValidSubmit="CreateProposal">
                                 <DataAnnotationsValidator />
@@ -539,6 +556,12 @@
     private LineChartConfig _config;
     private string chartId = $"chart-{Guid.NewGuid().ToString()}";
 
+    private List<ProposalDTO> proposals = new List<ProposalDTO>();
+    private int startIndex = 0;
+    private int pageSize = 5;
+    private int currentPage = 0;
+    private int totalPages => (int)Math.Ceiling((double)proposals.Count / pageSize);
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -549,6 +572,12 @@
         }
 
         WalletService.AccountChanged += HandleAccountChanged;
+        // WalletService.OnNewProposal += HandleNewProposal;
+        // WalletService.OnVoteCast += HandleVoteCast;
+
+        // WalletService.StartListeningForEvents();
+
+        await LoadProposals();
 
         _config = new LineChartConfig
         {
@@ -600,6 +629,102 @@
             }
         };
     }
+
+    private async Task LoadProposals()
+    {
+        proposals.Clear();
+        int index = 0;
+        while (true)
+        {
+            try
+            {
+                var proposal = await WalletService.GetProposal(index);
+                proposals.Add(proposal);
+                index++;
+            }
+            catch
+            {
+                break;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task CreateProposal()
+    {
+        if (!walletConnected)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please connect your wallet first.");
+            return;
+        }
+
+        try
+        {
+            await WalletService.CreateProposal(newProposal.Title, newProposal.Description);
+            newProposal = new NewProposal();
+            await JSRuntime.InvokeVoidAsync("alert", "Proposal created successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error creating proposal: {ex.Message}");
+        }
+    }
+
+    private async Task Vote(bool voteYes, int proposalIndex)
+    {
+        if (!walletConnected)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please connect your wallet first.");
+            return;
+        }
+
+        try
+        {
+            if (voteYes)
+            {
+                await WalletService.VoteYes(proposalIndex);
+            }
+            else
+            {
+                await WalletService.VoteNo(proposalIndex);
+            }
+            await JSRuntime.InvokeVoidAsync("alert", "Vote cast successfully!");
+            await LoadProposals();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error casting vote: {ex.Message}");
+        }
+    }
+
+    private void NextPage()
+    {
+        if (startIndex + pageSize < proposals.Count)
+        {
+            startIndex += pageSize;
+            currentPage++;
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (startIndex - pageSize >= 0)
+        {
+            startIndex -= pageSize;
+            currentPage--;
+        }
+    }
+
+    // private void HandleNewProposal(object sender, NewProposalEventDTO e)
+    // {
+    //     proposals.Add(new ProposalDTO { Title = e.Title, Description = e.Description });
+    //     StateHasChanged();
+    // }
+
+    // private async void HandleVoteCast(object sender, VoteCastEventDTO e)
+    // {
+    //     await LoadProposals();
+    // }
 
     private async Task HandleConnectWallet()
     {
@@ -665,50 +790,7 @@
         NoVotes = 25
     };
 
-    private void Vote(bool voteYes)
-    {
-        if (voteYes)
-        {
-            currentProposal.YesVotes++;
-        }
-        else
-        {
-            currentProposal.NoVotes++;
-        }
-    }
-
     private NewProposal newProposal = new NewProposal();
-
-    private void CreateProposal()
-    {
-        // In a real application, this would submit the proposal to the blockchain
-        // For now, we'll just show an alert
-        JSRuntime.InvokeVoidAsync("alert", $"New proposal submitted:\nTitle: {newProposal.Title}\nDescription: {newProposal.Description}");
-
-        // Clear the form
-        newProposal = new NewProposal();
-    }
-
-    private class Proposal
-    {
-        public string Description { get; set; }
-        public int YesVotes { get; set; }
-        public int NoVotes { get; set; }
-        public int TotalVotes => YesVotes + NoVotes;
-        public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
-        public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
-    }
-
-    private class NewProposal
-    {
-        [Required(ErrorMessage = "Title is required")]
-        [StringLength(100, ErrorMessage = "Title must be between 5 and 100 characters", MinimumLength = 5)]
-        public string Title { get; set; }
-
-        [Required(ErrorMessage = "Description is required")]
-        [StringLength(500, ErrorMessage = "Description must be between 10 and 500 characters", MinimumLength = 10)]
-        public string Description { get; set; }
-    }
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
@@ -758,5 +840,21 @@
     public void Dispose()
     {
         WalletService.AccountChanged -= HandleAccountChanged;
+    }
+
+    private class Proposal
+    {
+        public string Description { get; set; }
+        public int YesVotes { get; set; }
+        public int NoVotes { get; set; }
+        public int TotalVotes => YesVotes + NoVotes;
+        public int YesPercentage => TotalVotes == 0 ? 0 : (YesVotes * 100) / TotalVotes;
+        public int NoPercentage => TotalVotes == 0 ? 0 : (NoVotes * 100) / TotalVotes;
+    }
+
+    private class NewProposal
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
     }
 }
