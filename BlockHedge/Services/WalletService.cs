@@ -103,6 +103,10 @@ namespace BlockHedge.Services
             {
                 throw new InvalidOperationException("Wallet not connected");
             }
+            if (_web3 == null)
+            {
+                throw new InvalidOperationException("Web3 instance not initialized");
+            }
 
             return await _votingContractService.VoteYes(_web3, _selectedAccount, proposalIndex);
         }
